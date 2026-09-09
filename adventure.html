@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spare Time Adventure - Primary 4 English Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 50%, #fef3c7 100%);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .font-heading {
+      font-family: 'Fredoka', cursive;
+    }
+
+    /* Animations for kid-friendly UI */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+
+    @keyframes hop {
+      0% { transform: translateY(0) scale(1); }
+      40% { transform: translateY(-20px) scale(1.15); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    .animate-float {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .animate-hop {
+      animation: hop 0.5s ease-in-out;
+    }
+
+    .adventure-node {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .btn-card {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-card:hover {
+      transform: translateY(-4px) scale(1.02);
+    }
+    .btn-card:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border: 3px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Scrollbar for tablet/mobile overflow */
+    ::-webkit-scrollbar {
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #93c5fd;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
+
+  <header class="max-w-5xl mx-auto w-full mb-3 flex items-center justify-between px-3 py-2.5 bg-white/90 backdrop-blur rounded-2xl shadow-md border-2 border-sky-200">
+    <div class="flex items-center gap-3">
+      <div class="bg-amber-400 text-white p-2.5 rounded-xl shadow-inner text-xl flex items-center justify-center w-10 h-10">
+        <i class="fa-solid fa-compass fa-spin-pulse" style="--fa-animation-duration: 8s;"></i>
+      </div>
+      <div>
+        <h1 class="font-heading font-bold text-xl sm:text-2xl text-sky-800 leading-none">Spare Time Adventure</h1>
+        <p class="text-xs font-bold text-sky-600 hidden sm:block">Primary 4 English Quest</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Sound Toggle -->
+      <button id="soundBtn" onclick="toggleSound()" class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 font-bold text-xs sm:text-sm border-2 border-slate-300 transition-all">
+        <i id="soundIcon" class="fa-solid fa-volume-high text-sky-600"></i>
+        <span id="soundText" class="hidden sm:inline">Sound ON</span>
+      </button>
+      
+      <!-- Progress Pill -->
+      <div class="bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-heading font-bold px-3.5 py-1.5 rounded-xl text-sm sm:text-base shadow-sm">
+        Level <span id="currentLevelNum">1</span> / 8
+      </div>
+    </div>
+  </header>
+
+  <nav class="max-w-5xl mx-auto w-full mb-3 glass-panel rounded-3xl p-3 sm:p-4 border-2 border-sky-300 shadow-xl overflow-x-auto">
+    <div class="flex items-center justify-between min-w-[550px] relative px-6 py-2">
+      <!-- Path Line -->
+      <div class="absolute top-1/2 left-8 right-8 h-3 bg-sky-200 -translate-y-1/2 rounded-full -z-0 border border-sky-300"></div>
+      <div id="progressLine" class="absolute top-1/2 left-8 h-3 bg-gradient-to-r from-emerald-400 via-sky-400 to-indigo-500 -translate-y-1/2 rounded-full -z-0 transition-all duration-500" style="width: 0%;"></div>
+
+      <!-- Nodes 1 through 8 (Only Numbers shown, NO activity names) -->
+      <div id="node-1" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">1</div>
+      </div>
+      <div id="node-2" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">2</div>
+      </div>
+      <div id="node-3" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">3</div>
+      </div>
+      <div id="node-4" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">4</div>
+      </div>
+      <div id="node-5" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">5</div>
+      </div>
+      <div id="node-6" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">6</div>
+      </div>
+      <div id="node-7" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">7</div>
+      </div>
+      <div id="node-8" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-300 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg">8</div>
+      </div>
+      <!-- Finish Goal -->
+      <div id="node-goal" class="adventure-node relative z-10 flex flex-col items-center">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 border-4 border-amber-400 shadow-md flex items-center justify-center text-amber-500 font-bold text-lg">
+          <i class="fa-solid fa-trophy text-amber-500"></i>
+        </div>
+      </div>
+
+      <!-- Character Mascot -->
+      <div id="characterAvatar" class="absolute z-20 -top-5 transition-all duration-500 ease-out flex flex-col items-center pointer-events-none" style="left: 12px;">
+        <div class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap mb-0.5 animate-bounce">You!</div>
+        <!-- Student Avatar SVG -->
+        <svg class="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-md" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45" fill="#3b82f6" stroke="#ffffff" stroke-width="4"/>
+          <!-- Cap -->
+          <path d="M 25 35 Q 50 15 75 35 L 80 40 L 20 40 Z" fill="#ef4444"/>
+          <ellipse cx="50" cy="20" rx="6" ry="3" fill="#f59e0b"/>
+          <!-- Face -->
+          <circle cx="50" cy="52" r="26" fill="#fde047"/>
+          <!-- Eyes -->
+          <circle cx="41" cy="48" r="4" fill="#1e293b"/>
+          <circle cx="59" cy="48" r="4" fill="#1e293b"/>
+          <!-- Smile -->
+          <path d="M 40 60 Q 50 70 60 60" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+          <!-- Cheeks -->
+          <circle cx="35" cy="56" r="3" fill="#f43f5e" opacity="0.6"/>
+          <circle cx="65" cy="56" r="3" fill="#f43f5e" opacity="0.6"/>
+        </svg>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto w-full flex-grow flex flex-col justify-center my-1">
+    <div class="glass-panel rounded-3xl p-4 sm:p-7 border-4 border-white shadow-2xl relative min-h-[460px] flex flex-col justify-between">
+      
+      <!-- Feedback Modal Popup -->
+      <div id="feedbackOverlay" class="hidden absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm rounded-3xl flex items-center justify-center p-4">
+        <div id="feedbackCard" class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-300 transform transition-all scale-95 opacity-0">
+          <div id="feedbackIconContainer" class="w-20 h-20 mx-auto mb-3 rounded-full flex items-center justify-center text-4xl shadow-inner"></div>
+          <h3 id="feedbackTitle" class="font-heading font-bold text-2xl sm:text-3xl mb-2">Notice</h3>
+          <p id="feedbackText" class="text-slate-700 font-bold mb-6 text-base sm:text-lg leading-relaxed"></p>
+          <button id="feedbackBtn" onclick="closeFeedback()" class="w-full py-3 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-500 hover:to-blue-700 text-white font-heading font-bold text-xl rounded-2xl shadow-lg border-b-4 border-blue-800 active:translate-y-1">
+            OK
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= PART 1 VIEW ================= -->
+      <div id="part1View" class="flex flex-col items-center w-full">
+        <!-- Part Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-1 bg-amber-100 text-amber-800 rounded-full font-heading font-bold text-xs sm:text-sm border border-amber-300 mb-2 shadow-sm">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+          PART 1: Choose the correct sentence
+        </div>
+
+        <!-- Question Banner (No Quotation Marks) -->
+        <div class="w-full text-center mb-3">
+          <h2 class="font-heading font-bold text-xl sm:text-3xl text-sky-900 bg-sky-50 border-2 border-sky-200 py-2 px-5 rounded-2xl shadow-sm inline-block">
+            What do you like doing in your spare time?
+          </h2>
+        </div>
+
+        <!-- Activity Picture Box (Always Visible) -->
+        <div id="activityImgContainer" class="w-full max-w-md h-44 sm:h-52 bg-gradient-to-b from-sky-100 to-indigo-50 rounded-2xl border-4 border-sky-200 shadow-inner flex items-center justify-center p-2 mb-4 relative overflow-hidden">
+          <!-- SVG Illustration injected dynamically -->
+        </div>
+
+        <!-- Sentence Options A, B, C -->
+        <div class="w-full grid grid-cols-1 gap-3 max-w-2xl">
+          <button onclick="checkPart1(0)" class="btn-card bg-white border-2 border-slate-200 hover:border-sky-400 hover:bg-sky-50 p-3 sm:p-4 rounded-2xl shadow-md text-left flex items-center gap-3 group">
+            <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-100 text-sky-700 font-heading font-bold text-base sm:text-lg flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-colors shrink-0">A</span>
+            <span id="choiceTextA" class="font-extrabold text-slate-700 text-base sm:text-lg group-hover:text-sky-900"></span>
+          </button>
+
+          <button onclick="checkPart1(1)" class="btn-card bg-white border-2 border-slate-200 hover:border-sky-400 hover:bg-sky-50 p-3 sm:p-4 rounded-2xl shadow-md text-left flex items-center gap-3 group">
+            <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-100 text-sky-700 font-heading font-bold text-base sm:text-lg flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-colors shrink-0">B</span>
+            <span id="choiceTextB" class="font-extrabold text-slate-700 text-base sm:text-lg group-hover:text-sky-900"></span>
+          </button>
+
+          <button onclick="checkPart1(2)" class="btn-card bg-white border-2 border-slate-200 hover:border-sky-400 hover:bg-sky-50 p-3 sm:p-4 rounded-2xl shadow-md text-left flex items-center gap-3 group">
+            <span class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-100 text-sky-700 font-heading font-bold text-base sm:text-lg flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-colors shrink-0">C</span>
+            <span id="choiceTextC" class="font-extrabold text-slate-700 text-base sm:text-lg group-hover:text-sky-900"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= PART 2 VIEW ================= -->
+      <div id="part2View" class="hidden flex-col items-center w-full">
+        <!-- Part Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-1 bg-purple-100 text-purple-800 rounded-full font-heading font-bold text-xs sm:text-sm border border-purple-300 mb-2 shadow-sm">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-ping"></span>
+          PART 2: Choose the frequency word
+        </div>
+
+        <!-- Prompt Text (No "How often do you...") -->
+        <div class="w-full text-center mb-3">
+          <h2 class="font-heading font-bold text-xl sm:text-2xl text-purple-900 bg-purple-50 border-2 border-purple-200 py-2 px-5 rounded-2xl shadow-sm inline-block">
+            Choose the correct frequency word.
+          </h2>
+        </div>
+
+        <!-- Calendar Display -->
+        <div class="w-full max-w-md bg-white border-4 border-purple-200 rounded-2xl p-3 shadow-md mb-4">
+          <div class="grid grid-cols-7 gap-1 text-center font-heading font-bold text-xs text-purple-600 mb-2 border-b-2 border-purple-100 pb-1">
+            <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+          </div>
+          <!-- Calendar Grid 28 Days -->
+          <div id="calendarGrid" class="grid grid-cols-7 gap-1.5 text-center">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Frequency Buttons: Always, Often, Sometimes -->
+        <div class="w-full grid grid-cols-3 gap-3 max-w-xl">
+          <button onclick="checkPart2('Always')" class="btn-card bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white font-heading font-extrabold text-lg sm:text-2xl py-4 rounded-2xl shadow-lg border-b-4 border-emerald-800 flex items-center justify-center">
+            <span>Always</span>
+          </button>
+
+          <button onclick="checkPart2('Often')" class="btn-card bg-gradient-to-b from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-heading font-extrabold text-lg sm:text-2xl py-4 rounded-2xl shadow-lg border-b-4 border-blue-800 flex items-center justify-center">
+            <span>Often</span>
+          </button>
+
+          <button onclick="checkPart2('Sometimes')" class="btn-card bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-heading font-extrabold text-lg sm:text-2xl py-4 rounded-2xl shadow-lg border-b-4 border-amber-800 flex items-center justify-center">
+            <span>Sometimes</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= VICTORY VIEW ================= -->
+      <div id="victoryView" class="hidden flex-col items-center justify-center text-center py-6">
+        <!-- Trophy Graphic -->
+        <div class="relative mb-4">
+          <div class="absolute inset-0 bg-amber-300 blur-2xl rounded-full opacity-60 animate-pulse"></div>
+          <svg class="w-32 h-32 sm:w-40 sm:h-40 relative z-10 mx-auto drop-shadow-xl animate-float" viewBox="0 0 100 100">
+            <rect x="30" y="80" width="40" height="10" fill="#78350f" rx="2"/>
+            <rect x="38" y="72" width="24" height="8" fill="#b45309"/>
+            <path d="M 44 55 L 44 72 L 56 72 L 56 55 Z" fill="#f59e0b"/>
+            <path d="M 20 20 L 80 20 L 70 58 Q 50 70 30 58 Z" fill="#fbbf24" stroke="#d97706" stroke-width="2"/>
+            <path d="M 25 24 L 75 24 L 66 54 Q 50 64 34 54 Z" fill="#fef08a"/>
+            <path d="M 20 28 C 5 28 5 48 23 48" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 80 28 C 95 28 95 48 77 48" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+            <polygon points="50,30 53,38 62,38 55,43 57,51 50,46 43,51 45,43 38,38 47,38" fill="#f59e0b"/>
+          </svg>
+        </div>
+
+        <h2 class="font-heading font-black text-2xl sm:text-4xl text-amber-600 mb-2 leading-tight">
+          Great job! You finished the Spare Time Adventure!
+        </h2>
+
+        <div class="inline-block bg-amber-100 border-2 border-amber-300 text-amber-900 font-heading font-bold text-2xl sm:text-3xl px-6 py-2 rounded-2xl mb-5 shadow-inner">
+          Score: 8 / 8 ⭐
+        </div>
+
+        <p class="text-slate-600 font-bold mb-6 max-w-md text-base">
+          You mastered all spare-time activities and frequency sentences! 🎉
+        </p>
+
+        <button onclick="resetGame()" class="btn-card bg-gradient-to-r from-emerald-400 to-teal-600 hover:from-emerald-500 hover:to-teal-700 text-white font-heading font-bold text-2xl px-10 py-4 rounded-2xl shadow-xl border-b-4 border-teal-800 flex items-center gap-3 mx-auto">
+          <i class="fa-solid fa-rotate-right text-2xl"></i>
+          <span>PLAY AGAIN</span>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="max-w-5xl mx-auto w-full text-center py-2 text-xs text-slate-500 font-bold">
+    Primary 4 English Grammar • Spare Time Activities & Frequency Words
+  </footer>
+
+  <script>
+    /* Web Audio Sound Synthesizer */
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      const text = document.getElementById('soundText');
+      if (soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-sky-600';
+        text.innerText = 'Sound ON';
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+        text.innerText = 'Sound OFF';
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'correct') {
+        const freqs = [523.25, 659.25, 783.99, 1046.50];
+        freqs.forEach((f, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now + i * 0.08);
+          gain.gain.setValueAtTime(0.2, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.22);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.22);
+        });
+      } else if (type === 'incorrect') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.25);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'step') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } else if (type === 'victory') {
+        const notes = [523.25, 659.25, 783.99, 1046.50, 880, 1046.50];
+        const times = [0, 0.15, 0.3, 0.45, 0.65, 0.85];
+        const durations = [0.12, 0.12, 0.12, 0.18, 0.18, 0.6];
+        notes.forEach((f, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + times[i]);
+          gain.gain.setValueAtTime(0.3, now + times[i]);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + times[i] + durations[i]);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + times[i]);
+          osc.stop(now + times[i] + durations[i]);
+        });
+      }
+    }
+
+    /* SVG Artwork Illustrations for all 8 activities */
+    const activitySVGs = {
+      'ice-skating': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <ellipse cx="100" cy="130" rx="80" ry="12" fill="#bae6fd" opacity="0.6"/>
+          <path d="M 65 30 L 95 30 L 100 70 L 135 90 L 135 110 L 55 110 L 55 50 Z" fill="#ffffff" stroke="#0284c7" stroke-width="4" stroke-linejoin="round"/>
+          <line x1="75" y1="40" x2="90" y2="40" stroke="#ef4444" stroke-width="3"/>
+          <line x1="77" y1="50" x2="92" y2="50" stroke="#ef4444" stroke-width="3"/>
+          <line x1="80" y1="60" x2="95" y2="60" stroke="#ef4444" stroke-width="3"/>
+          <rect x="60" y="110" width="10" height="12" fill="#94a3b8"/>
+          <rect x="120" y="110" width="10" height="12" fill="#94a3b8"/>
+          <path d="M 45 122 L 145 122 Q 155 122 155 112 L 150 112 Q 142 118 135 118 L 50 118 Q 42 118 40 108 L 35 108 Q 35 122 45 122 Z" fill="#64748b"/>
+          <circle cx="40" cy="30" r="4" fill="#38bdf8"/>
+          <circle cx="160" cy="40" r="3" fill="#38bdf8"/>
+        </svg>`,
+
+      'tennis': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <g transform="rotate(-25 100 75)">
+            <ellipse cx="90" cy="55" rx="35" ry="45" fill="none" stroke="#ef4444" stroke-width="6"/>
+            <path d="M 70 20 V 90 M 80 12 V 98 M 90 10 V 100 M 100 12 V 98 M 110 20 V 90" stroke="#cbd5e1" stroke-width="1.5"/>
+            <path d="M 60 40 H 120 M 56 50 H 124 M 56 60 H 124 M 60 70 H 120" stroke="#cbd5e1" stroke-width="1.5"/>
+            <path d="M 75 95 L 85 115 L 85 145 L 95 145 L 95 115 L 105 95 Z" fill="#1e293b"/>
+            <rect x="83" y="115" width="14" height="30" fill="#f8fafc" rx="2"/>
+          </g>
+          <circle cx="140" cy="55" r="18" fill="#ccff00" stroke="#84cc16" stroke-width="2"/>
+          <path d="M 127 47 Q 140 55 127 63" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 153 47 Q 140 55 153 63" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+        </svg>`,
+
+      'cycling': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <circle cx="55" cy="95" r="32" fill="none" stroke="#334155" stroke-width="6"/>
+          <circle cx="145" cy="95" r="32" fill="none" stroke="#334155" stroke-width="6"/>
+          <line x1="55" y1="63" x2="55" y2="127" stroke="#cbd5e1" stroke-width="1.5"/>
+          <line x1="23" y1="95" x2="87" y2="95" stroke="#cbd5e1" stroke-width="1.5"/>
+          <line x1="145" y1="63" x2="145" y2="127" stroke="#cbd5e1" stroke-width="1.5"/>
+          <line x1="113" y1="95" x2="177" y2="95" stroke="#cbd5e1" stroke-width="1.5"/>
+          <path d="M 55 95 L 90 95 L 120 60 L 70 60 Z" fill="none" stroke="#0ea5e9" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M 90 95 L 135 45 M 145 95 L 130 40" fill="none" stroke="#0ea5e9" stroke-width="5" stroke-linecap="round"/>
+          <path d="M 120 40 L 140 40" stroke="#1e293b" stroke-width="4" stroke-linecap="round"/>
+          <rect x="60" y="54" width="22" height="6" fill="#1e293b" rx="3"/>
+        </svg>`,
+
+      'volleyball': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <line x1="30" y1="20" x2="30" y2="135" stroke="#64748b" stroke-width="6"/>
+          <rect x="30" y="40" width="150" height="50" fill="rgba(241, 245, 249, 0.7)" stroke="#94a3b8" stroke-width="2"/>
+          <path d="M 30 55 H 180 M 30 70 H 180 M 60 40 V 90 M 90 40 V 90 M 120 40 V 90 M 150 40 V 90" stroke="#cbd5e1" stroke-width="1.5"/>
+          <circle cx="110" cy="30" r="22" fill="#f8fafc" stroke="#2563eb" stroke-width="3"/>
+          <path d="M 92 22 C 105 15 115 35 110 52" fill="none" stroke="#f59e0b" stroke-width="3"/>
+          <path d="M 128 22 C 115 15 105 35 110 52" fill="none" stroke="#2563eb" stroke-width="3"/>
+          <path d="M 92 34 C 110 40 120 20 131 32" fill="none" stroke="#f59e0b" stroke-width="3"/>
+        </svg>`,
+
+      'rock-climbing': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <rect x="40" y="10" width="120" height="130" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="4" rx="8"/>
+          <path d="M 60 30 Q 68 25 75 32 Q 70 40 62 38 Z" fill="#ef4444"/>
+          <path d="M 120 40 Q 128 35 135 42 Q 130 50 122 48 Z" fill="#3b82f6"/>
+          <path d="M 70 70 Q 78 65 85 72 Q 80 80 72 78 Z" fill="#f59e0b"/>
+          <path d="M 115 85 Q 123 80 130 87 Q 125 95 117 93 Z" fill="#10b981"/>
+          <path d="M 65 110 Q 73 105 80 112 Q 75 120 67 118 Z" fill="#8b5cf6"/>
+          <path d="M 100 10 L 100 140" fill="none" stroke="#f43f5e" stroke-width="3" stroke-dasharray="6,4"/>
+        </svg>`,
+
+      'online-games': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <rect x="35" y="20" width="130" height="90" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="4"/>
+          <rect x="42" y="27" width="116" height="76" rx="6" fill="#1e1b4b"/>
+          <circle cx="70" cy="65" r="12" fill="#facc15"/>
+          <rect x="110" y="50" width="15" height="30" fill="#22c55e" rx="3"/>
+          <rect x="130" y="60" width="15" height="20" fill="#ef4444" rx="3"/>
+          <path d="M 70 125 L 130 125 L 125 140 L 75 140 Z" fill="#64748b"/>
+        </svg>`,
+
+      'public-library': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <rect x="30" y="15" width="140" height="120" fill="#854d0e" rx="4"/>
+          <rect x="38" y="23" width="124" height="42" fill="#fef3c7"/>
+          <rect x="38" y="77" width="124" height="48" fill="#fef3c7"/>
+          <rect x="45" y="30" width="12" height="35" fill="#ef4444" rx="1"/>
+          <rect x="58" y="26" width="14" height="39" fill="#3b82f6" rx="1"/>
+          <rect x="73" y="32" width="10" height="33" fill="#10b981" rx="1"/>
+          <rect x="84" y="28" width="16" height="37" fill="#f59e0b" rx="1"/>
+          <rect x="101" y="30" width="12" height="35" fill="#8b5cf6" rx="1"/>
+          <rect x="45" y="82" width="16" height="43" fill="#06b6d4" rx="1"/>
+          <rect x="62" y="86" width="12" height="39" fill="#f97316" rx="1"/>
+          <rect x="75" y="80" width="14" height="45" fill="#84cc16" rx="1"/>
+          <rect x="90" y="85" width="15" height="40" fill="#6366f1" rx="1"/>
+        </svg>`,
+
+      'read-magazines': `
+        <svg class="w-full h-full max-h-48" viewBox="0 0 200 150">
+          <path d="M 25 35 Q 100 20 100 40 Q 100 20 175 35 L 170 120 Q 100 105 100 120 Q 100 105 30 120 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="3"/>
+          <line x1="100" y1="25" x2="100" y2="120" stroke="#cbd5e1" stroke-width="3"/>
+          <rect x="40" y="45" width="45" height="30" fill="#38bdf8" rx="3"/>
+          <line x1="40" y1="83" x2="85" y2="83" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+          <line x1="40" y1="92" x2="75" y2="92" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+          <rect x="115" y="43" width="50" height="8" fill="#f43f5e" rx="2"/>
+          <line x1="115" y1="60" x2="165" y2="60" stroke="#64748b" stroke-width="2.5"/>
+          <line x1="115" y1="68" x2="165" y2="68" stroke="#64748b" stroke-width="2.5"/>
+        </svg>`
+    };
+
+    const gameLevels = [
+      {
+        level: 1,
+        activityKey: 'ice-skating',
+        part1: {
+          options: [
+            "I like playing tennis.",
+            "I like going ice-skating.",
+            "I like reading magazines."
+          ],
+          correctIndex: 1
+        },
+        part2: {
+          daysCount: 4,
+          correctAnswer: "Always",
+          fullSentence: "I always go ice-skating."
+        }
+      },
+      {
+        level: 2,
+        activityKey: 'tennis',
+        part1: {
+          options: [
+            "I like going cycling.",
+            "I like playing tennis.",
+            "I like playing online games."
+          ],
+          correctIndex: 1
+        },
+        part2: {
+          daysCount: 3,
+          correctAnswer: "Often",
+          fullSentence: "I often play tennis."
+        }
+      },
+      {
+        level: 3,
+        activityKey: 'cycling',
+        part1: {
+          options: [
+            "I like going cycling.",
+            "I like going rock climbing.",
+            "I like playing volleyball."
+          ],
+          correctIndex: 0
+        },
+        part2: {
+          daysCount: 2,
+          correctAnswer: "Sometimes",
+          fullSentence: "I sometimes go cycling."
+        }
+      },
+      {
+        level: 4,
+        activityKey: 'volleyball',
+        part1: {
+          options: [
+            "I like reading magazines.",
+            "I like going ice-skating.",
+            "I like playing volleyball."
+          ],
+          correctIndex: 2
+        },
+        part2: {
+          daysCount: 4,
+          correctAnswer: "Always",
+          fullSentence: "I always play volleyball."
+        }
+      },
+      {
+        level: 5,
+        activityKey: 'rock-climbing',
+        part1: {
+          options: [
+            "I like playing tennis.",
+            "I like going rock climbing.",
+            "I like going to a public library."
+          ],
+          correctIndex: 1
+        },
+        part2: {
+          daysCount: 3,
+          correctAnswer: "Often",
+          fullSentence: "I often go rock climbing."
+        }
+      },
+      {
+        level: 6,
+        activityKey: 'online-games',
+        part1: {
+          options: [
+            "I like playing online games.",
+            "I like going jogging.",
+            "I like reading the newspaper."
+          ],
+          correctIndex: 0
+        },
+        part2: {
+          daysCount: 2,
+          correctAnswer: "Sometimes",
+          fullSentence: "I sometimes play online games."
+        }
+      },
+      {
+        level: 7,
+        activityKey: 'public-library',
+        part1: {
+          options: [
+            "I like going to a public library.",
+            "I like playing volleyball.",
+            "I like going cycling."
+          ],
+          correctIndex: 0
+        },
+        part2: {
+          daysCount: 3,
+          correctAnswer: "Often",
+          fullSentence: "I often go to a public library."
+        }
+      },
+      {
+        level: 8,
+        activityKey: 'read-magazines',
+        part1: {
+          options: [
+            "I like playing online games.",
+            "I like going ice-skating.",
+            "I like reading magazines."
+          ],
+          correctIndex: 2
+        },
+        part2: {
+          daysCount: 4,
+          correctAnswer: "Always",
+          fullSentence: "I always read magazines."
+        }
+      }
+    ];
+
+    // GAME STATE VARIABLES
+    let currentLevelIndex = 0; // 0 to 7
+    let currentPart = 1;
+
+    // Calendar Highlight Day Patterns (Day indices 0..27)
+    const calendarDayPatterns = {
+      4: [2, 9, 16, 23],
+      3: [4, 11, 18],
+      2: [6, 20]
+    };
+
+    window.onload = function() {
+      loadLevel(0);
+      updateMapCharacter();
+    };
+
+    function loadLevel(index) {
+      currentLevelIndex = index;
+      currentPart = 1;
+
+      const lvl = gameLevels[index];
+      document.getElementById('currentLevelNum').innerText = lvl.level;
+
+      // Show Part 1 View
+      document.getElementById('part1View').classList.remove('hidden');
+      document.getElementById('part1View').classList.add('flex');
+      document.getElementById('part2View').classList.add('hidden');
+      document.getElementById('part2View').classList.remove('flex');
+      document.getElementById('victoryView').classList.add('hidden');
+      document.getElementById('victoryView').classList.remove('flex');
+
+      // Inject Part 1 Picture & Choices
+      document.getElementById('activityImgContainer').innerHTML = activitySVGs[lvl.activityKey];
+      document.getElementById('choiceTextA').innerText = lvl.part1.options[0];
+      document.getElementById('choiceTextB').innerText = lvl.part1.options[1];
+      document.getElementById('choiceTextC').innerText = lvl.part1.options[2];
+
+      updateMapNodes();
+    }
+
+    function checkPart1(selectedIndex) {
+      const lvl = gameLevels[currentLevelIndex];
+      if (selectedIndex === lvl.part1.correctIndex) {
+        playSound('correct');
+        showFeedback(true, "Great!", "", () => {
+          switchToPart2();
+        });
+      } else {
+        playSound('incorrect');
+        showFeedback(false, "Try again!", "Look closely at the picture and try again!");
+      }
+    }
+
+    function switchToPart2() {
+      currentPart = 2;
+      const lvl = gameLevels[currentLevelIndex];
+
+      document.getElementById('part1View').classList.add('hidden');
+      document.getElementById('part1View').classList.remove('flex');
+      document.getElementById('part2View').classList.remove('hidden');
+      document.getElementById('part2View').classList.add('flex');
+
+      renderCalendar(lvl.part2.daysCount, lvl.activityKey);
+    }
+
+    function renderCalendar(daysCount, activityKey) {
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const highlightDays = calendarDayPatterns[daysCount] || [];
+
+      for (let day = 1; day <= 28; day++) {
+        const dayIdx = day - 1;
+        const isHighlighted = highlightDays.includes(dayIdx);
+
+        const cell = document.createElement('div');
+        cell.className = `h-9 sm:h-11 rounded-lg border flex flex-col items-center justify-between p-1 transition-all ${
+          isHighlighted 
+            ? 'bg-purple-100 border-purple-400 font-bold shadow-sm ring-2 ring-purple-300' 
+            : 'bg-slate-50 border-slate-200 text-slate-400'
+        }`;
+
+        const numSpan = document.createElement('span');
+        numSpan.className = 'text-[10px] leading-none text-slate-500 font-semibold self-start';
+        numSpan.innerText = day;
+        cell.appendChild(numSpan);
+
+        if (isHighlighted) {
+          const iconContainer = document.createElement('div');
+          iconContainer.className = 'w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center animate-bounce';
+          iconContainer.innerHTML = activitySVGs[activityKey];
+          cell.appendChild(iconContainer);
+        }
+
+        grid.appendChild(cell);
+      }
+    }
+
+    function checkPart2(selectedFrequency) {
+      const lvl = gameLevels[currentLevelIndex];
+
+      if (selectedFrequency === lvl.part2.correctAnswer) {
+        playSound('correct');
+        
+        // Show Full Sentence + Excellent! Move forward 1 step!
+        const messageText = `${lvl.part2.fullSentence}<br><span class="text-emerald-600 font-heading text-xl mt-2 block">Excellent! Move forward 1 step!</span>`;
+
+        showFeedback(true, "Great job!", messageText, () => {
+          advanceCharacter();
+
+          if (currentLevelIndex < 7) {
+            currentLevelIndex++;
+            loadLevel(currentLevelIndex);
+          } else {
+            showVictoryScreen();
+          }
+        });
+      } else {
+        playSound('incorrect');
+        showFeedback(false, "Try again!", "Count the activity icons on the calendar and try again!");
+      }
+    }
+
+    function updateMapNodes() {
+      for (let i = 1; i <= 8; i++) {
+        const node = document.getElementById(`node-${i}`);
+        const circle = node.querySelector('.node-circle');
+        
+        if (i - 1 < currentLevelIndex) {
+          // Completed node
+          circle.className = 'node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-500 border-4 border-white shadow-md flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg';
+          circle.innerHTML = '<i class="fa-solid fa-check"></i>';
+        } else if (i - 1 === currentLevelIndex) {
+          // Active node
+          circle.className = 'node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-400 border-4 border-amber-200 shadow-lg ring-4 ring-amber-300 flex items-center justify-center font-heading font-bold text-white text-base sm:text-lg animate-pulse';
+          circle.innerText = i;
+        } else {
+          // Future locked node
+          circle.className = 'node-circle w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 border-4 border-white shadow-inner flex items-center justify-center font-heading font-bold text-slate-400 text-base sm:text-lg';
+          circle.innerText = i;
+        }
+      }
+
+      const progressPercent = (currentLevelIndex / 8) * 100;
+      document.getElementById('progressLine').style.width = `${progressPercent}%`;
+      
+      updateMapCharacter();
+    }
+
+    function advanceCharacter() {
+      playSound('step');
+      const avatar = document.getElementById('characterAvatar');
+      avatar.classList.add('animate-hop');
+      setTimeout(() => {
+        avatar.classList.remove('animate-hop');
+      }, 500);
+    }
+
+    function updateMapCharacter() {
+      const avatar = document.getElementById('characterAvatar');
+      let targetNodeId = `node-${currentLevelIndex + 1}`;
+      if (currentLevelIndex >= 8) {
+        targetNodeId = 'node-goal';
+      }
+
+      const targetNode = document.getElementById(targetNodeId);
+      if (targetNode) {
+        const navContainer = targetNode.parentElement;
+        const navRect = navContainer.getBoundingClientRect();
+        const nodeRect = targetNode.getBoundingClientRect();
+
+        const relativeLeft = nodeRect.left - navRect.left + (nodeRect.width / 2) - 20;
+        avatar.style.left = `${relativeLeft}px`;
+      }
+    }
+
+    let feedbackCallback = null;
+
+    function showFeedback(isSuccess, title, messageHtml, callback = null) {
+      feedbackCallback = callback;
+      const overlay = document.getElementById('feedbackOverlay');
+      const card = document.getElementById('feedbackCard');
+      const iconContainer = document.getElementById('feedbackIconContainer');
+      const titleEl = document.getElementById('feedbackTitle');
+      const textEl = document.getElementById('feedbackText');
+      const btn = document.getElementById('feedbackBtn');
+
+      titleEl.innerText = title;
+      textEl.innerHTML = messageHtml;
+
+      if (isSuccess) {
+        card.className = "bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-emerald-400 transform transition-all scale-100 opacity-100";
+        iconContainer.className = "w-20 h-20 mx-auto mb-3 rounded-full flex items-center justify-center text-4xl shadow-inner bg-emerald-100 text-emerald-600";
+        iconContainer.innerHTML = '<i class="fa-solid fa-face-laugh-beam"></i>';
+        btn.className = "w-full py-3 bg-gradient-to-r from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white font-heading font-bold text-xl rounded-2xl shadow-lg border-b-4 border-emerald-800 active:translate-y-1";
+      } else {
+        card.className = "bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-400 transform transition-all scale-100 opacity-100";
+        iconContainer.className = "w-20 h-20 mx-auto mb-3 rounded-full flex items-center justify-center text-4xl shadow-inner bg-amber-100 text-amber-600";
+        iconContainer.innerHTML = '<i class="fa-solid fa-face-rolling-eyes"></i>';
+        btn.className = "w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-heading font-bold text-xl rounded-2xl shadow-lg border-b-4 border-amber-800 active:translate-y-1";
+      }
+
+      overlay.classList.remove('hidden');
+      setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    function closeFeedback() {
+      const overlay = document.getElementById('feedbackOverlay');
+      overlay.classList.add('hidden');
+      if (feedbackCallback) {
+        const cb = feedbackCallback;
+        feedbackCallback = null;
+        cb();
+      }
+    }
+
+    function showVictoryScreen() {
+      playSound('victory');
+
+      currentLevelIndex = 8;
+      updateMapNodes();
+
+      document.getElementById('part1View').classList.add('hidden');
+      document.getElementById('part2View').classList.add('hidden');
+      document.getElementById('victoryView').classList.remove('hidden');
+      document.getElementById('victoryView').classList.add('flex');
+
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+
+        setTimeout(() => {
+          confetti({
+            particleCount: 80,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 80,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 400);
+      }
+    }
+
+    function resetGame() {
+      loadLevel(0);
+    }
+
+    window.onresize = function() {
+      updateMapCharacter();
+    };
+  </script>
+</body>
+</html>
