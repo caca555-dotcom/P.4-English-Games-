@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>After-school Activities Ice Cream Game</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Quicksand for playful primary school aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 50%, #f8bbd0 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-quicksand {
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        /* 3D Card Flip styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        /* Ice cream animations */
+        @keyframes scoopPop {
+            0% { transform: translateY(-80px) scale(0.6); opacity: 0; }
+            60% { transform: translateY(10px) scale(1.1); opacity: 1; }
+            80% { transform: translateY(-4px) scale(0.95); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .animate-scoop {
+            animation: scoopPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounceGentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-bounce-gentle {
+            animation: bounceGentle 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.9); }
+        }
+        .pulse-glow {
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        /* Custom scrollbars for side ice cream display */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Confetti canvas overlay */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="p-3 md:p-6 text-slate-800 flex flex-col min-h-screen">
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Header Controls -->
+    <header class="max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 bg-white/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border-2 border-white/90">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-pink-500 text-white rounded-2xl flex items-center justify-center text-2xl shadow-md transform -rotate-3">
+                🍦
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                    After-school Activities Ice Cream Game
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-500 font-quicksand font-semibold">Primary 4 English Vocabulary Revision</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Music Toggle Button -->
+            <button id="musicToggleBtn" onclick="toggleMusic()" class="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border-2 border-indigo-200 text-indigo-700 rounded-2xl hover:bg-indigo-100 transition-all shadow-sm font-bold active:scale-95">
+                <span id="musicIcon" class="text-xl">🎵</span>
+                <span id="musicText" class="text-sm">Music: ON</span>
+            </button>
+
+            <!-- Reset Game Button -->
+            <button onclick="restartGame()" class="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white rounded-2xl hover:bg-rose-600 transition-all shadow-md font-bold text-sm active:scale-95">
+                <span>🔄</span> Reset Game
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="max-w-7xl mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Ice Cream Tower Progress Column (Left/Top) -->
+        <section class="lg:col-span-4 xl:col-span-3 bg-white/85 backdrop-blur-md rounded-3xl p-5 shadow-xl border-4 border-amber-200/80 flex flex-col items-center justify-between min-h-[480px] max-h-[720px] relative overflow-hidden">
+            <!-- Progress Header -->
+            <div class="w-full text-center pb-2 border-b-2 border-amber-100">
+                <div class="inline-block px-3 py-1 bg-amber-100 text-amber-800 font-bold rounded-full text-xs uppercase tracking-wider mb-1">
+                    Reward Tower
+                </div>
+                <h2 class="text-lg font-bold text-slate-700">Scoops Built: <span id="scoopCountText" class="text-2xl text-pink-500 font-extrabold">0</span> / 13</h2>
+            </div>
+
+            <!-- Ice Cream Display Container -->
+            <div id="iceCreamTowerContainer" class="w-full flex-1 flex flex-col-reverse items-center justify-start overflow-y-auto no-scrollbar py-4 px-2 my-2 relative">
+                <!-- Empty Waffle Cone Base (Always at bottom) -->
+                <div id="coneBase" class="relative z-10 transition-all duration-300 transform">
+                    <svg width="120" height="110" viewBox="0 0 120 110" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-md">
+                        <!-- Waffle Cone -->
+                        <path d="M15 10 L60 100 L105 10 Z" fill="#E5A967" stroke="#C47F35" stroke-width="4" stroke-linejoin="round"/>
+                        <!-- Grid Lines -->
+                        <path d="M30 25 L85 25 M22 40 L76 75 M98 40 L44 75 M38 80 L70 30" stroke="#B87122" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- Cone Rim Shadow -->
+                        <ellipse cx="60" cy="10" rx="46" ry="7" fill="#C47F35" opacity="0.4"/>
+                    </svg>
+                </div>
+
+                <!-- Dynamic Scoops Stacked Here -->
+                <div id="scoopStack" class="flex flex-col-reverse items-center w-full z-20"></div>
+            </div>
+
+            <!-- Bottom Motivational Badge -->
+            <div class="w-full bg-gradient-to-r from-amber-500 to-pink-500 text-white rounded-2xl p-2.5 text-center shadow-md">
+                <p id="towerMotivationText" class="text-xs sm:text-sm font-bold">Pick a card to earn your 1st scoop! 🍦</p>
+            </div>
+        </section>
+
+        <!-- Card Grid Section -->
+        <section class="lg:col-span-8 xl:col-span-9 bg-white/60 backdrop-blur-md p-4 sm:p-6 rounded-3xl shadow-xl border-2 border-white/80">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Select an Activity Card</h2>
+                    <p class="text-xs text-slate-500 font-quicksand font-bold">Cards are shuffled in random positions for every game!</p>
+                </div>
+                <div id="remainingBadge" class="bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm">
+                    13 Cards Available
+                </div>
+            </div>
+
+            <!-- 13 Cards Grid Container -->
+            <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                <!-- Cards will be dynamically shuffled & injected here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Card Reveal Modal Container -->
+    <div id="cardModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div id="modalContent" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 flex flex-col items-center relative transform scale-90 transition-transform duration-300 border-4 border-pink-200">
+
+            <!-- Card Number Badge & Modal Close Cross -->
+            <div class="w-full flex justify-between items-center mb-2">
+                <span id="modalCardNumber" class="bg-pink-100 text-pink-700 font-bold px-4 py-1.5 rounded-full text-sm sm:text-base border border-pink-300 shadow-sm">
+                    Card #--
+                </span>
+                <button onclick="closeModal()" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full flex items-center justify-center font-bold text-xl transition-colors shadow-sm">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Large Cartoon Picture Container -->
+            <div id="modalSvgContainer" class="w-full h-64 sm:h-72 bg-gradient-to-b from-sky-50 to-indigo-50 rounded-2xl flex items-center justify-center p-4 border-2 border-indigo-100 shadow-inner mb-4 overflow-hidden relative">
+                <!-- SVG inserted dynamically -->
+            </div>
+
+            <!-- Step 1: Reveal Answer Button (Shown initially before second click) -->
+            <div id="revealBtnContainer" class="w-full my-2">
+                <button id="btnRevealAnswer" onclick="revealAnswer()" class="w-full py-4 px-6 bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 hover:from-amber-500 hover:to-purple-600 text-white font-extrabold text-xl sm:text-2xl rounded-2xl shadow-lg hover:shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-3 border-b-4 border-purple-700 pulse-glow">
+                    <span>👁️</span> Click to Reveal Answer
+                </button>
+            </div>
+
+            <!-- Step 2: Target Vocabulary Phrase (Hidden initially until revealed) -->
+            <div id="modalVocabContainer" class="hidden w-full text-center py-3 px-4 bg-amber-50 border-2 border-amber-200 rounded-2xl mb-4 shadow-sm animate-scoop">
+                <span class="text-xs text-amber-700 uppercase tracking-widest font-bold block mb-1">Target Phrase</span>
+                <h3 id="modalVocabWord" class="text-3xl sm:text-5xl font-extrabold text-slate-800 tracking-wide">
+                    --
+                </h3>
+            </div>
+
+            <!-- Feedback Toast Banner -->
+            <div id="feedbackBanner" class="hidden mb-4 px-6 py-2.5 rounded-full text-white font-extrabold text-lg sm:text-xl shadow-lg text-center transition-all transform scale-100">
+                <!-- Feedback text inserted here -->
+            </div>
+
+            <!-- Teacher Evaluation Buttons (Hidden until answer is revealed) -->
+            <div id="gradingButtonsContainer" class="hidden w-full flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+                <button id="btnCorrect" onclick="teacherGrade(true)" class="w-full sm:w-1/2 py-3.5 px-6 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg sm:text-xl rounded-2xl shadow-lg hover:shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 border-b-4 border-emerald-700">
+                    <span>✅</span> Correct (+1 Scoop)
+                </button>
+                <button id="btnTryAgain" onclick="teacherGrade(false)" class="w-full sm:w-1/2 py-3.5 px-6 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-lg sm:text-xl rounded-2xl shadow-lg hover:shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 border-b-4 border-amber-700">
+                    <span>🔁</span> Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Overlay Screen -->
+    <div id="victoryModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-500">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full p-8 text-center relative border-8 border-yellow-300 transform scale-90 transition-transform duration-500">
+            <div class="w-24 h-24 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-lg animate-bounce">
+                🏆
+            </div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 mb-2">
+                Great job!
+            </h2>
+            <p class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent mb-4">
+                You built a giant ice cream! 🍦🎉
+            </p>
+            <div class="inline-block bg-emerald-100 text-emerald-800 font-extrabold text-lg px-6 py-2 rounded-2xl mb-6 shadow-sm border border-emerald-300">
+                13 / 13 cards completed!
+            </div>
+
+            <!-- Mini Giant Ice Cream Summary Graphic -->
+            <div class="w-32 h-44 mx-auto mb-6 bg-pink-50 rounded-2xl border-2 border-pink-200 flex items-center justify-center shadow-inner relative overflow-hidden p-2">
+                <div class="text-6xl animate-bounce-gentle">
+                    🍨
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full py-4 px-8 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:to-indigo-600 text-white font-extrabold text-2xl rounded-2xl shadow-xl hover:shadow-2xl transition-all transform active:scale-95 border-b-4 border-purple-800">
+                🚀 PLAY AGAIN
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Exact 13 Vocabulary items with matching cartoon SVG graphics
+        const VOCAB_DATA = [
+            {
+                id: 'rock_climbing',
+                word: 'go rock climbing',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <!-- Climbing Wall -->
+                    <rect x="20" y="10" width="260" height="200" rx="15" fill="#8D6E63"/>
+                    <path d="M20 10 L150 210 L280 10 Z" fill="#795548" opacity="0.3"/>
+                    <!-- Holds -->
+                    <circle cx="60" cy="160" r="12" fill="#E91E63"/>
+                    <circle cx="110" cy="120" r="14" fill="#FFEB3B"/>
+                    <circle cx="80" cy="70" r="10" fill="#00BCD4"/>
+                    <circle cx="170" cy="150" r="13" fill="#4CAF50"/>
+                    <circle cx="150" cy="90" r="11" fill="#FF9800"/>
+                    <circle cx="210" cy="130" r="12" fill="#9C27B0"/>
+                    <circle cx="200" cy="50" r="14" fill="#E91E63"/>
+                    <!-- Child Climbing -->
+                    <path d="M140 100 L130 130 M160 100 L170 120" stroke="#FFCC80" stroke-width="8" stroke-linecap="round"/>
+                    <rect x="135" y="80" width="30" height="35" rx="8" fill="#2196F3"/>
+                    <circle cx="150" cy="65" r="16" fill="#FFCC80"/>
+                    <!-- Safety Helmet & Harness -->
+                    <path d="M132 63 C132 50 168 50 168 63 Z" fill="#FFEB3B"/>
+                    <line x1="150" y1="10" x2="150" y2="80" stroke="#FFF" stroke-width="3" stroke-dasharray="4,4"/>
+                </svg>`
+            },
+            {
+                id: 'jogging',
+                word: 'go jogging',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <!-- Sun & Park Background -->
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#E0F7FA"/>
+                    <circle cx="240" cy="50" r="25" fill="#FFD54F"/>
+                    <path d="M10 160 Q 150 130 290 160 L290 210 L10 210 Z" fill="#81C784"/>
+                    <!-- Jogging Track -->
+                    <path d="M10 180 Q 150 150 290 180" stroke="#FF8A65" stroke-width="30"/>
+                    <path d="M10 180 Q 150 150 290 180" stroke="#FFF" stroke-width="2" stroke-dasharray="8,8"/>
+                    <!-- Jogging Child -->
+                    <path d="M125 125 L105 155 M145 125 L165 150" stroke="#37474F" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M120 100 L95 115 M150 100 L175 90" stroke="#FFCC80" stroke-width="7" stroke-linecap="round"/>
+                    <rect x="120" y="85" width="28" height="35" rx="6" fill="#EC407A"/>
+                    <circle cx="134" cy="70" r="16" fill="#FFCC80"/>
+                    <!-- Sweatband & Hair -->
+                    <path d="M120 62 C120 52 148 52 148 62 Z" fill="#5D4037"/>
+                    <rect x="120" y="62" width="28" height="6" rx="2" fill="#29B6F6"/>
+                </svg>`
+            },
+            {
+                id: 'cycling',
+                word: 'go cycling',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#FFF9C4"/>
+                    <!-- Trail -->
+                    <path d="M10 170 Q 150 140 290 170 L290 210 L10 210 Z" fill="#A1887F"/>
+                    <!-- Bicycle Wheels -->
+                    <circle cx="90" cy="150" r="32" fill="none" stroke="#424242" stroke-width="6"/>
+                    <circle cx="210" cy="150" r="32" fill="none" stroke="#424242" stroke-width="6"/>
+                    <circle cx="90" cy="150" r="4" fill="#424242"/>
+                    <circle cx="210" cy="150" r="4" fill="#424242"/>
+                    <!-- Bicycle Frame -->
+                    <path d="M90 150 L135 150 L175 110 L210 150 M135 150 L155 110 L185 110 M155 110 L90 150" stroke="#E53935" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Cyclist -->
+                    <rect x="140" y="85" width="24" height="30" rx="5" fill="#7E57C2"/>
+                    <circle cx="148" cy="68" r="14" fill="#FFCC80"/>
+                    <!-- Helmet -->
+                    <path d="M135 66 C135 52 161 52 161 66 Z" fill="#FFB300"/>
+                </svg>`
+            },
+            {
+                id: 'ice_skating',
+                word: 'go ice-skating',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#E1F5FE"/>
+                    <!-- Ice Rink & Sparkles -->
+                    <path d="M20 150 Q 150 120 280 150 L280 200 L20 200 Z" fill="#B3E5FC" opacity="0.8"/>
+                    <path d="M50 165 Q 120 155 200 175" stroke="#FFF" stroke-width="3" stroke-linecap="round" fill="none"/>
+                    <text x="50" y="50" font-size="20">❄️</text>
+                    <text x="230" y="70" font-size="20">❄️</text>
+                    <!-- Ice Skater -->
+                    <path d="M130 110 L100 155 M150 110 L180 145" stroke="#37474F" stroke-width="7" stroke-linecap="round"/>
+                    <!-- Skates -->
+                    <rect x="90" y="153" width="18" height="8" rx="2" fill="#FFF"/>
+                    <line x1="85" y1="163" x2="112" y2="163" stroke="#90A4AE" stroke-width="3"/>
+                    <rect x="175" y="143" width="18" height="8" rx="2" fill="#FFF"/>
+                    <line x1="170" y1="153" x2="197" y2="153" stroke="#90A4AE" stroke-width="3"/>
+                    <!-- Outfit & Beanie -->
+                    <rect x="125" y="75" width="30" height="38" rx="8" fill="#FF4081"/>
+                    <circle cx="140" cy="58" r="15" fill="#FFCC80"/>
+                    <path d="M125 56 C125 42 155 42 155 56 Z" fill="#7C4DFF"/>
+                    <circle cx="140" cy="40" r="5" fill="#FFF"/>
+                </svg>`
+            },
+            {
+                id: 'indoor_playground',
+                word: 'go to an indoor playground',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#F3E5F5"/>
+                    <!-- Play Tubes & Structure -->
+                    <rect x="30" y="30" width="100" height="100" rx="12" fill="#FF7043"/>
+                    <circle cx="80" cy="80" r="30" fill="#FFF" opacity="0.8"/>
+                    <!-- Slide -->
+                    <path d="M130 60 Q 200 80 250 170" stroke="#FFCA28" stroke-width="24" stroke-linecap="round" fill="none"/>
+                    <!-- Ball Pit -->
+                    <rect x="160" y="150" width="110" height="50" rx="10" fill="#29B6F6"/>
+                    <circle cx="180" cy="165" r="8" fill="#E91E63"/>
+                    <circle cx="200" cy="170" r="8" fill="#FFEB3B"/>
+                    <circle cx="220" cy="160" r="8" fill="#66BB6A"/>
+                    <circle cx="240" cy="175" r="8" fill="#AB47BC"/>
+                    <!-- Happy Child on Slide -->
+                    <circle cx="180" cy="70" r="12" fill="#FFCC80"/>
+                    <path d="M170 82 L200 110" stroke="#26A69A" stroke-width="12" stroke-linecap="round"/>
+                </svg>`
+            },
+            {
+                id: 'public_library',
+                word: 'go to a public library',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#FFF8E1"/>
+                    <!-- Library Signboard -->
+                    <rect x="80" y="20" width="140" height="25" rx="5" fill="#5D4037"/>
+                    <text x="150" y="37" font-size="12" fill="#FFF" font-weight="bold" text-anchor="middle">PUBLIC LIBRARY</text>
+                    <!-- Bookshelves -->
+                    <rect x="30" y="55" width="240" height="90" rx="5" fill="#8D6E63"/>
+                    <rect x="40" y="65" width="220" height="32" fill="#5D4037"/>
+                    <rect x="40" y="105" width="220" height="32" fill="#5D4037"/>
+                    <!-- Books on shelves -->
+                    <rect x="50" y="70" width="12" height="22" fill="#EF5350"/>
+                    <rect x="64" y="67" width="14" height="25" fill="#42A5F5"/>
+                    <rect x="80" y="72" width="10" height="20" fill="#66BB6A"/>
+                    <rect x="92" y="68" width="16" height="24" fill="#FFA726"/>
+                    <rect x="180" y="70" width="15" height="22" fill="#AB47BC"/>
+                    <rect x="197" y="66" width="12" height="26" fill="#26C6DA"/>
+                    <!-- Reading Desk & Child -->
+                    <rect x="80" y="160" width="140" height="40" rx="4" fill="#A1887F"/>
+                    <circle cx="150" cy="138" r="15" fill="#FFCC80"/>
+                    <!-- Open Book on desk -->
+                    <path d="M135 158 Q 150 153 165 158 L165 168 Q 150 163 135 168 Z" fill="#FFF" stroke="#424242" stroke-width="1"/>
+                </svg>`
+            },
+            {
+                id: 'tennis',
+                word: 'play tennis',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <!-- Tennis Court -->
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#81C784"/>
+                    <rect x="30" y="30" width="240" height="160" fill="none" stroke="#FFF" stroke-width="4"/>
+                    <line x1="150" y1="30" x2="150" y2="190" stroke="#FFF" stroke-width="4"/>
+                    <!-- Net -->
+                    <line x1="150" y1="20" x2="150" y2="200" stroke="#37474F" stroke-width="6"/>
+                    <line x1="150" y1="20" x2="150" y2="200" stroke="#FFF" stroke-width="2" stroke-dasharray="3,3"/>
+                    <!-- Tennis Player -->
+                    <circle cx="90" cy="85" r="15" fill="#FFCC80"/>
+                    <rect x="78" y="102" width="24" height="32" rx="6" fill="#1E88E5"/>
+                    <!-- Tennis Racket -->
+                    <ellipse cx="130" cy="80" rx="14" ry="18" fill="none" stroke="#FF9800" stroke-width="4"/>
+                    <line x1="118" y1="92" x2="102" y2="110" stroke="#8D6E63" stroke-width="5" stroke-linecap="round"/>
+                    <!-- Tennis Ball -->
+                    <circle cx="150" cy="70" r="9" fill="#CCFF90" stroke="#76FF03" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                id: 'volleyball',
+                word: 'play volleyball',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <!-- Beach / Court -->
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#FFE082"/>
+                    <!-- High Net -->
+                    <line x1="150" y1="20" x2="150" y2="170" stroke="#757575" stroke-width="4"/>
+                    <rect x="145" y="40" width="10" height="90" fill="#FFF" opacity="0.6" stroke="#424242" stroke-dasharray="2,2"/>
+                    <!-- Jumping Player spiking -->
+                    <path d="M95 100 L75 130 M105 100 L120 125" stroke="#37474F" stroke-width="7" stroke-linecap="round"/>
+                    <rect x="90" y="70" width="22" height="30" rx="5" fill="#00E676"/>
+                    <circle cx="101" cy="55" r="14" fill="#FFCC80"/>
+                    <!-- Raised Arm -->
+                    <line x1="105" y1="75" x2="135" y2="45" stroke="#FFCC80" stroke-width="6" stroke-linecap="round"/>
+                    <!-- Volleyball in air -->
+                    <circle cx="155" cy="35" r="15" fill="#FFF" stroke="#1E88E5" stroke-width="3"/>
+                    <path d="M145 35 Q 155 25 165 35 M155 20 L155 50" stroke="#FFC107" stroke-width="2"/>
+                </svg>`
+            },
+            {
+                id: 'online_games',
+                word: 'play online games',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#E8EAF6"/>
+                    <!-- Computer Desk & PC Monitor -->
+                    <rect x="50" y="30" width="200" height="120" rx="10" fill="#37474F"/>
+                    <rect x="60" y="40" width="180" height="100" rx="6" fill="#1A237E"/>
+                    <!-- Web Browser Online Game UI -->
+                    <rect x="60" y="40" width="180" height="15" fill="#3949AB"/>
+                    <circle cx="70" cy="47" r="3" fill="#FF5252"/>
+                    <circle cx="80" cy="47" r="3" fill="#FFD740"/>
+                    <circle cx="90" cy="47" r="3" fill="#69F0AE"/>
+                    <!-- Game Graphics on Screen (Healthbar, Score, Avatar) -->
+                    <rect x="70" y="65" width="60" height="10" rx="3" fill="#FF1744"/>
+                    <text x="180" y="73" font-size="10" fill="#FFD740" font-weight="bold">SCORE: 999</text>
+                    <polygon points="120,120 150,80 180,120" fill="#00E676"/>
+                    <circle cx="150" cy="90" r="8" fill="#FFEA00"/>
+                    <!-- Child Headset & Keyboard -->
+                    <rect x="110" y="170" width="80" height="12" rx="3" fill="#78909C"/>
+                    <circle cx="210" cy="175" r="6" fill="#FF4081"/>
+                </svg>`
+            },
+            {
+                id: 'video_games',
+                word: 'play video games',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#311B92"/>
+                    <!-- TV Screen with Console Game -->
+                    <rect x="40" y="25" width="220" height="110" rx="8" fill="#000" stroke="#7C4DFF" stroke-width="4"/>
+                    <!-- Platformer Video Game on TV -->
+                    <rect x="50" y="35" width="200" height="90" fill="#80DEEA"/>
+                    <rect x="50" y="105" width="200" height="20" fill="#8D6E63"/>
+                    <rect x="100" y="80" width="40" height="10" fill="#4CAF50"/>
+                    <circle cx="120" cy="70" r="6" fill="#FFEB3B"/>
+                    <rect x="65" y="90" width="12" height="15" fill="#E91E63"/>
+                    <!-- Children on Couch holding Gamepads -->
+                    <rect x="50" y="150" width="200" height="45" rx="10" fill="#D81B60"/>
+                    <circle cx="110" cy="140" r="12" fill="#FFCC80"/>
+                    <circle cx="190" cy="140" r="12" fill="#FFCC80"/>
+                    <!-- Controllers/Gamepads -->
+                    <rect x="120" y="148" width="20" height="10" rx="3" fill="#424242"/>
+                    <rect x="165" y="148" width="20" height="10" rx="3" fill="#424242"/>
+                </svg>`
+            },
+            {
+                id: 'text_friend',
+                word: 'text my friend',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#FCE4EC"/>
+                    <!-- Smartphone -->
+                    <rect x="95" y="20" width="110" height="180" rx="16" fill="#37474F" stroke="#B0BEC5" stroke-width="3"/>
+                    <rect x="102" y="35" width="96" height="145" rx="6" fill="#FFF"/>
+                    <!-- Chat Bubbles -->
+                    <rect x="110" y="50" width="65" height="24" rx="10" fill="#E1F5FE"/>
+                    <text x="120" y="66" font-size="11" fill="#0277BD" font-weight="bold">Hi there! 👋</text>
+                    <rect x="125" y="82" width="65" height="24" rx="10" fill="#DCEDC8"/>
+                    <text x="133" y="98" font-size="11" fill="#33691E" font-weight="bold">Let's play! 😊</text>
+                    <rect x="110" y="114" width="75" height="24" rx="10" fill="#E1F5FE"/>
+                    <text x="118" y="130" font-size="11" fill="#0277BD" font-weight="bold">See you soon! ❤️</text>
+                    <!-- Child Hands holding phone -->
+                    <path d="M75 140 C85 110 95 120 95 140 Z" fill="#FFCC80"/>
+                    <path d="M225 140 C215 110 205 120 205 140 Z" fill="#FFCC80"/>
+                </svg>`
+            },
+            {
+                id: 'read_newspaper',
+                word: 'read the newspaper',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#E0E0E0"/>
+                    <!-- Unfolded Broadsheet Newspaper -->
+                    <rect x="40" y="30" width="220" height="160" rx="4" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2"/>
+                    <line x1="150" y1="30" x2="150" y2="190" stroke="#BDBDBD" stroke-width="2"/>
+                    <!-- "DAILY NEWS" Masthead -->
+                    <text x="95" y="52" font-size="16" font-family="serif" font-weight="bold" fill="#212121">DAILY NEWS</text>
+                    <text x="170" y="52" font-size="16" font-family="serif" font-weight="bold" fill="#212121">WORLD</text>
+                    <line x1="50" y1="58" x2="250" y2="58" stroke="#212121" stroke-width="2"/>
+                    <!-- Columns and headlines -->
+                    <rect x="52" y="66" width="40" height="30" fill="#BDBDBD"/>
+                    <line x1="98" y1="68" x2="140" y2="68" stroke="#424242" stroke-width="3"/>
+                    <line x1="98" y1="76" x2="140" y2="76" stroke="#757575" stroke-width="2"/>
+                    <line x1="98" y1="84" x2="140" y2="84" stroke="#757575" stroke-width="2"/>
+                    <!-- Right Page Text lines -->
+                    <line x1="160" y1="68" x2="240" y2="68" stroke="#424242" stroke-width="3"/>
+                    <line x1="160" y1="78" x2="240" y2="78" stroke="#757575" stroke-width="2"/>
+                    <line x1="160" y1="86" x2="240" y2="86" stroke="#757575" stroke-width="2"/>
+                    <!-- Child Peeking behind paper -->
+                    <circle cx="150" cy="25" r="14" fill="#FFCC80"/>
+                </svg>`
+            },
+            {
+                id: 'read_magazines',
+                word: 'read magazines',
+                svg: `<svg viewBox="0 0 300 220" class="w-full h-full">
+                    <rect x="10" y="10" width="280" height="200" rx="15" fill="#FFF0F5"/>
+                    <!-- Glossy Colorful Magazine Cover/Pages -->
+                    <rect x="60" y="25" width="180" height="170" rx="8" fill="#FF4081"/>
+                    <rect x="70" y="35" width="160" height="150" rx="4" fill="#FFF"/>
+                    <!-- Magazine Title -->
+                    <rect x="80" y="45" width="140" height="25" rx="5" fill="#7C4DFF"/>
+                    <text x="150" y="62" font-size="14" fill="#FFF" font-weight="extrabold" text-anchor="middle">KIDS MAGAZINE</text>
+                    <!-- Colorful Graphic Photos inside Magazine -->
+                    <circle cx="110" cy="110" r="22" fill="#FFB74D"/>
+                    <rect x="145" y="90" width="70" height="40" rx="4" fill="#4FC3F7"/>
+                    <!-- Text Columns -->
+                    <line x1="80" y1="145" x2="220" y2="145" stroke="#AB47BC" stroke-width="4" stroke-linecap="round"/>
+                    <line x1="80" y1="158" x2="200" y2="158" stroke="#BDBDBD" stroke-width="3"/>
+                    <line x1="80" y1="168" x2="180" y2="168" stroke="#BDBDBD" stroke-width="3"/>
+                    <!-- Child Reading Hands -->
+                    <path d="M50 120 C60 100 70 110 70 130 Z" fill="#FFCC80"/>
+                    <path d="M250 120 C240 100 230 110 230 130 Z" fill="#FFCC80"/>
+                </svg>`
+            }
+        ];
+
+        const ICE_CREAM_STAGES = [
+            { name: "Strawberry", color: "#FF6B8B", seedColor: "#C41E3A", topping: "🍓" },
+            { name: "Vanilla Bean", color: "#FFF8DC", seedColor: "#D2B48C", topping: "✨" },
+            { name: "Rich Chocolate", color: "#6A3821", seedColor: "#3E1F11", topping: "🍫" },
+            { name: "Mint Chip", color: "#98FF98", seedColor: "#1B4D3E", topping: "🍃" },
+            { name: "Blueberry Blast", color: "#7B68EE", seedColor: "#4B0082", topping: "🫐" },
+            { name: "Mango Delight", color: "#FFB347", seedColor: "#E67E22", topping: "🥭" },
+            { name: "Cookie Dough", color: "#F5DEB3", seedColor: "#8B4513", topping: "🍪" },
+            { name: "Cotton Candy", color: "#FFB6C1", seedColor: "#87CEFA", topping: "🍬" },
+            { name: "Pistachio", color: "#93C572", seedColor: "#4A7C59", topping: "🥜" },
+            { name: "Lemon Sorbet", color: "#FFF44F", seedColor: "#F4C430", topping: "🍋" },
+            { name: "Rainbow Sherbet", color: "#FF7F50", seedColor: "#FF69B4", topping: "🌈" },
+            { name: "Cookie Monster", color: "#1E90FF", seedColor: "#00008B", topping: "🍪" },
+            { name: "Golden Supreme", color: "#FFD700", seedColor: "#FF8C00", topping: "🍒" }
+        ];
+
+        // Game State Variables
+        let shuffledCards = [];
+        let currentCardIndex = null;
+        let completedCards = new Set();
+        let currentScoopCount = 0;
+        let isMusicPlaying = true;
+        let feedbackTimer = null;
+
+        // Web Audio API Synthesizer (Zero external dependencies)
+        let audioCtx = null;
+        let bgMusicOsc1 = null;
+        let bgMusicOsc2 = null;
+        let bgMusicGain = null;
+        let musicTimer = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Web Audio synthesized cheerful background music
+        function startBackgroundMusic() {
+            if (!isMusicPlaying) return;
+            initAudio();
+            if (musicTimer) clearInterval(musicTimer);
+
+            const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // C E G C G E
+            let step = 0;
+
+            musicTimer = setInterval(() => {
+                if (!isMusicPlaying || !audioCtx) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                    step++;
+                } catch(e){}
+            }, 400);
+        }
+
+        function stopBackgroundMusic() {
+            if (musicTimer) {
+                clearInterval(musicTimer);
+                musicTimer = null;
+            }
+        }
+
+        function toggleMusic() {
+            isMusicPlaying = !isMusicPlaying;
+            const musicIcon = document.getElementById('musicIcon');
+            const musicText = document.getElementById('musicText');
+
+            if (isMusicPlaying) {
+                musicIcon.textContent = '🎵';
+                musicText.textContent = 'Music: ON';
+                startBackgroundMusic();
+            } else {
+                musicIcon.textContent = '🔇';
+                musicText.textContent = 'Music: OFF';
+                stopBackgroundMusic();
+            }
+        }
+
+        // Play SFX Helper
+        function playSound(type) {
+            if (!isMusicPlaying) return;
+            initAudio();
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'flip') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'correct') {
+                    // Happy chord chime
+                    [523.25, 659.25, 783.99].forEach((freq, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, now + i * 0.08);
+                        g.gain.setValueAtTime(0.12, now + i * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.4);
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.start(now + i * 0.08);
+                        o.stop(now + i * 0.08 + 0.4);
+                    });
+                } else if (type === 'tryAgain') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.linearRampToValueAtTime(180, now + 0.25);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'scoop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(450, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'victory') {
+                    [400, 500, 600, 800].forEach((f, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.frequency.setValueAtTime(f, now + i * 0.15);
+                        g.gain.setValueAtTime(0.15, now + i * 0.15);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.5);
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.start(now + i * 0.15);
+                        o.stop(now + i * 0.15 + 0.5);
+                    });
+                }
+            } catch(e){}
+        }
+
+        // Shuffle array helper (Fisher-Yates)
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Initialize / Restart Game
+        function restartGame() {
+            completedCards.clear();
+            currentScoopCount = 0;
+            currentCardIndex = null;
+
+            // Hide victory modal
+            const victoryModal = document.getElementById('victoryModal');
+            victoryModal.classList.add('opacity-0', 'pointer-events-none');
+            victoryModal.querySelector('div').classList.add('scale-90');
+
+            // Close card modal if open
+            closeModal();
+
+            // Shuffle 13 cards into random positions
+            shuffledCards = shuffle(VOCAB_DATA);
+
+            // Render Card Grid
+            renderCardGrid();
+
+            // Reset Ice Cream Tower
+            renderIceCreamTower();
+
+            // Update Header & Motivation Text
+            updateProgressText();
+
+            // Start music if enabled
+            if (isMusicPlaying) {
+                startBackgroundMusic();
+            }
+        }
+
+        function renderCardGrid() {
+            const grid = document.getElementById('cardsGrid');
+            grid.innerHTML = '';
+
+            shuffledCards.forEach((item, index) => {
+                const cardNum = index + 1;
+                const isCompleted = completedCards.has(item.id);
+
+                const cardEl = document.createElement('div');
+                cardEl.className = `perspective-1000 h-36 sm:h-44 cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 ${isCompleted ? 'opacity-60 cursor-not-allowed' : ''}`;
+                
+                cardEl.onclick = () => openCard(index);
+
+                cardEl.innerHTML = `
+                    <div class="relative w-full h-full transform-style-3d transition-transform duration-500 rounded-2xl shadow-md border-2 border-white/90 ${isCompleted ? 'rotate-y-180' : ''}">
+                        <!-- Card Face Down (Front view) -->
+                        <div class="absolute inset-0 bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-500 rounded-2xl p-3 flex flex-col items-center justify-between backface-hidden text-white border-2 border-white/40">
+                            <div class="w-full flex justify-between items-center text-xs font-bold opacity-80">
+                                <span>CARD</span>
+                                <span>🍦</span>
+                            </div>
+                            <div class="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-3xl font-extrabold shadow-inner border border-white/30">
+                                ${cardNum}
+                            </div>
+                            <div class="text-xs font-bold tracking-wider uppercase opacity-90">Tap to Reveal</div>
+                        </div>
+
+                        <!-- Card Face Up / Completed State (Back view) -->
+                        <div class="absolute inset-0 bg-slate-100 rounded-2xl p-2 flex flex-col items-center justify-center rotate-y-180 backface-hidden border-2 border-emerald-400 text-slate-800">
+                            <div class="text-3xl mb-1">✅</div>
+                            <span class="text-xs font-bold text-emerald-700 text-center line-clamp-2 px-1">
+                                ${item.word}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-bold mt-1">Done</span>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(cardEl);
+            });
+
+            document.getElementById('remainingBadge').textContent = `${13 - completedCards.size} Cards Available`;
+        }
+
+        function openCard(index) {
+            initAudio();
+            currentCardIndex = index;
+            const item = shuffledCards[index];
+
+            playSound('flip');
+
+            // Populate Modal - Picture ONLY, vocabulary word remains completely hidden initially
+            document.getElementById('modalCardNumber').textContent = `Card #${index + 1}`;
+            document.getElementById('modalSvgContainer').innerHTML = item.svg;
+            document.getElementById('modalVocabWord').textContent = '';
+
+            // Step 1: Show Reveal button, hide vocabulary word & grading buttons
+            document.getElementById('revealBtnContainer').classList.remove('hidden');
+            document.getElementById('modalVocabContainer').classList.add('hidden');
+            document.getElementById('gradingButtonsContainer').classList.add('hidden');
+
+            // Clear any old feedback message completely before showing next card
+            clearFeedbackBanner();
+
+            // Enable teacher buttons
+            document.getElementById('btnCorrect').disabled = false;
+            document.getElementById('btnTryAgain').disabled = false;
+
+            // Show Modal Overlay
+            const modal = document.getElementById('cardModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-90');
+            content.classList.add('scale-100');
+        }
+
+        function revealAnswer() {
+            if (currentCardIndex === null) return;
+            const item = shuffledCards[currentCardIndex];
+
+            playSound('flip');
+
+            // Set vocabulary text
+            document.getElementById('modalVocabWord').textContent = item.word;
+
+            // Step 2: Hide Reveal button, show large vocabulary text & grading buttons
+            document.getElementById('revealBtnContainer').classList.add('hidden');
+            document.getElementById('modalVocabContainer').classList.remove('hidden');
+            document.getElementById('gradingButtonsContainer').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            clearFeedbackBanner();
+            const modal = document.getElementById('cardModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-90');
+        }
+
+        function clearFeedbackBanner() {
+            if (feedbackTimer) {
+                clearTimeout(feedbackTimer);
+                feedbackTimer = null;
+            }
+            const banner = document.getElementById('feedbackBanner');
+            banner.className = 'hidden mb-4 px-6 py-2.5 rounded-full text-white font-extrabold text-lg sm:text-xl shadow-lg text-center transition-all';
+            banner.textContent = '';
+        }
+
+        function teacherGrade(isCorrect) {
+            const item = shuffledCards[currentCardIndex];
+            const banner = document.getElementById('feedbackBanner');
+
+            // Prevent double taps
+            document.getElementById('btnCorrect').disabled = true;
+            document.getElementById('btnTryAgain').disabled = true;
+
+            if (isCorrect) {
+                playSound('correct');
+                playSound('scoop');
+
+                // Reward Messages
+                const positiveFeedback = ['Good job! 🌟', 'Excellent! 🎉', 'Great! ⭐', 'Fantastic! 🍦', 'Super Star! 🚀'];
+                const randomMsg = positiveFeedback[Math.floor(Math.random() * positiveFeedback.length)];
+
+                banner.textContent = randomMsg;
+                banner.className = 'block mb-4 px-6 py-2.5 rounded-full bg-emerald-500 text-white font-extrabold text-lg sm:text-xl shadow-lg animate-bounce text-center';
+
+                // Add card to completed if not already added
+                if (!completedCards.has(item.id)) {
+                    completedCards.add(item.id);
+                    currentScoopCount++;
+                }
+
+                // Update Ice cream tower visuals & stats
+                renderIceCreamTower();
+                updateProgressText();
+                renderCardGrid();
+
+                // Feedback stays for 1.5s only, then modal closes and feedback disappears completely
+                feedbackTimer = setTimeout(() => {
+                    closeModal();
+
+                    // Check if all 13 completed
+                    if (completedCards.size === 13) {
+                        setTimeout(triggerVictory, 400);
+                    }
+                }, 1500);
+
+            } else {
+                playSound('tryAgain');
+
+                banner.textContent = 'Try again! 💪';
+                banner.className = 'block mb-4 px-6 py-2.5 rounded-full bg-amber-500 text-white font-extrabold text-lg sm:text-xl shadow-lg text-center';
+
+                // Stay open for 1.2s to show "Try again!" then re-enable buttons
+                feedbackTimer = setTimeout(() => {
+                    clearFeedbackBanner();
+                    document.getElementById('btnCorrect').disabled = false;
+                    document.getElementById('btnTryAgain').disabled = false;
+                }, 1200);
+            }
+        }
+
+        function renderIceCreamTower() {
+            const stack = document.getElementById('scoopStack');
+            stack.innerHTML = '';
+
+            for (let i = 0; i < currentScoopCount; i++) {
+                const stage = ICE_CREAM_STAGES[i % ICE_CREAM_STAGES.length];
+                const isTopScoop = (i === currentScoopCount - 1);
+
+                const scoopEl = document.createElement('div');
+                scoopEl.className = 'relative w-28 h-12 rounded-full shadow-md flex items-center justify-center border-2 border-white/60 -mb-4 animate-scoop z-20';
+                scoopEl.style.backgroundColor = stage.color;
+
+                // Add cute face to the topmost scoop!
+                let faceHtml = '';
+                if (isTopScoop) {
+                    faceHtml = `
+                        <div class="absolute inset-0 flex items-center justify-center gap-3 text-slate-800 pointer-events-none">
+                            <span class="text-xs">●</span>
+                            <span class="text-[10px] font-bold mt-1">◡</span>
+                            <span class="text-xs">●</span>
+                        </div>
+                    `;
+                }
+
+                // Add Cherry on top of the final 13th scoop!
+                let cherryHtml = '';
+                if (i === 12) {
+                    cherryHtml = `
+                        <div class="absolute -top-7 left-1/2 transform -translate-x-1/2 text-2xl animate-bounce">
+                            🍒
+                        </div>
+                    `;
+                }
+
+                scoopEl.innerHTML = `
+                    ${cherryHtml}
+                    <div class="text-sm select-none">${stage.topping}</div>
+                    ${faceHtml}
+                    <!-- Drip detail -->
+                    <div class="absolute -bottom-1 left-4 w-4 h-3 rounded-full" style="background-color: ${stage.color}"></div>
+                    <div class="absolute -bottom-1 right-6 w-5 h-3 rounded-full" style="background-color: ${stage.color}"></div>
+                `;
+
+                stack.appendChild(scoopEl);
+            }
+
+            // Scroll tower container to top so tall ice cream is visible
+            const container = document.getElementById('iceCreamTowerContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateProgressText() {
+            document.getElementById('scoopCountText').textContent = currentScoopCount;
+
+            const motivationText = document.getElementById('towerMotivationText');
+            if (currentScoopCount === 0) {
+                motivationText.textContent = "Pick a card to earn your 1st scoop! 🍦";
+            } else if (currentScoopCount < 5) {
+                motivationText.textContent = "Great start! Keep building your ice cream! 😋";
+            } else if (currentScoopCount < 10) {
+                motivationText.textContent = "Wow! It's getting so tall and yummy! 🎉";
+            } else if (currentScoopCount < 13) {
+                motivationText.textContent = "Almost there! Almost a giant ice cream! 🚀";
+            } else {
+                motivationText.textContent = "GIANT ICE CREAM COMPLETED! 🏆";
+            }
+        }
+
+        function triggerVictory() {
+            playSound('victory');
+            startConfetti();
+
+            const victoryModal = document.getElementById('victoryModal');
+            victoryModal.classList.remove('opacity-0', 'pointer-events-none');
+            victoryModal.querySelector('div').classList.remove('scale-90');
+            victoryModal.querySelector('div').classList.add('scale-100');
+        }
+
+        // Lightweight Confetti Animation
+        function startConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#FF4081', '#7C4DFF', '#00E676', '#FFEA00', '#FF9100', '#00E5FF'];
+
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: Math.random() * 3 + 2,
+                    speedX: Math.random() * 2 - 1,
+                    rotation: Math.random() * 360
+                });
+            }
+
+            let animationFrame;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.rotation += 2;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+
+                    if (p.y > canvas.height) {
+                        p.y = -10;
+                        p.x = Math.random() * canvas.width;
+                    }
+                });
+
+                if (!document.getElementById('victoryModal').classList.contains('opacity-0')) {
+                    animationFrame = requestAnimationFrame(animate);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            animate();
+        }
+
+        // Start initial game on window load
+        window.onload = function() {
+            restartGame();
+        };
+    </script>
+</body>
+</html>
